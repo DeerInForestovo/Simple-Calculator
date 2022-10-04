@@ -1,18 +1,19 @@
 #include "simbc.h"
 #include <iostream>
+#include <algorithm>
 
 error_in_bc Error_in_bc;
 
 void input(Number* n, char* begin, char* end) {
     n = new Number();
+    if(begin == end) return;
     // Input the number
     if(*begin == '-') {
         n -> sign = true;
         ++begin;
-    } else n -> sign = false;
-    if(*begin == '+') ++begin;
+    } else if(*begin == '+') ++begin;
     bool decimalPoint = false; // If there is a decimal point
-    while(('0' <= *begin && *begin <= '9') || *begin == '.')
+    while(('0' <= *begin && *begin <= '9') || *begin == '.' && begin != end)
         if(*begin == '.') {
             if(decimalPoint) Error_in_bc = error_in_bc(syntax_error, begin); // More than one decimal points
             decimalPoint = true;
@@ -22,6 +23,7 @@ void input(Number* n, char* begin, char* end) {
             n -> number[n -> length++] = *begin - '0';
             ++begin;
         }
+    if(begin != end) Error_in_bc = error_in_bc(syntax_error, begin);
     // Delete suffix zeros
     n -> deleteSuffixZeros();
     // Delete leading zeros
@@ -83,4 +85,23 @@ void Output(Number* n) {
             printf("e%d", n -> power + n -> length - 1);
         }
     }
+}
+
+Number operator + (Number A, Number B) {
+    Number S;
+    S.length = std::max(A.length, B.length);
+    for(int i = 0; i < S.length; ++i)
+        S.number[i] = A.number[i] + B.number[i];
+    for(int i = 0; i < S.length; ++i)
+        if(S.number[i] > 9) {
+            if(i == S.length - 1) ++S.length;
+            S.number[i + 1] += S.number[i] / 10;
+            S.number[i] %= 10;
+        }
+    return S;
+}
+
+Number operator - (Number A, Number B) {
+    Number S;
+    
 }

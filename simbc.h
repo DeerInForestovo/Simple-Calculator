@@ -25,8 +25,12 @@ Number operator * (Number A, Number B);
 Number operator / (Number A, Number B);
 Number operator % (Number A, Number B);
 Number operator ^ (Number A, Number B);
+bool operator < (Number A, Number B);
+bool operator > (Number A, Number B);
+
 
 void Input(Number* n, char* begin, char* end);
+void Output(Number* n);
 
 enum errors_in_bc {
     no_error,
