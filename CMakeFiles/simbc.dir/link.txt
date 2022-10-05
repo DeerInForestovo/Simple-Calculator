@@ -1,1 +1,0 @@
-/usr/bin/c++       CMakeFiles/simbc.dir/simbc.o CMakeFiles/simbc.dir/main.o  -o simbc -rdynamic 
