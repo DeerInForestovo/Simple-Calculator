@@ -1,6 +1,7 @@
 #include "simbc.h"
 #include <iostream>
 #include <cstring>
+#include <cstdio>
 using namespace std;
 char S[1000];
 error_in_bc Error_in_bc;
@@ -27,7 +28,7 @@ inline void errorCheck() {
             break;
     }
     if(position) {
-        printf("%s", S);
+        printf("%s\n", S);
         for(int i = 0; i < Error_in_bc.pos - S; ++i)
             printf(" ");
         printf("^\n");
@@ -43,14 +44,14 @@ inline void ShowHelp() {
 }
 double Solve(char *begin, char* end) {
     Error_in_bc.error_type = syntax_error;
-    Error_in_bc.pos = begin + ((int)end - (int)begin) / 2;
+    Error_in_bc.pos = begin + 5;
 }
 int main() {
     for(; true ; errorCheck()) {
         Error_in_bc.error_type = no_error;
         cin.getline(S, 1000);
         if(S[0] == '#') {
-            if(S[1] == 'q') return 0;
+            if(S[1] == 'q') break;
             else if(S[1] == 'h') ShowHelp();
             else Error_in_bc.error_type = unknown_command;
             continue;
@@ -72,4 +73,6 @@ int main() {
             if(Error_in_bc.error_type == no_error) cout << Ans << endl;
         }
     }
+    printf("Thank you for using!\n");
+    return 0;
 }
