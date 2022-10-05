@@ -29,6 +29,7 @@ SID: 12111012
 3. runtime error: 运算中发生错误，可能是对 $0$ 进行除法或取模等。
 4. unknown command: 未知指令，如果第一个字符为 # 而之后输入的内容不是现有的指令。
 5. unknown variable: 算式中出现了未知的变量名。
+6. unknown function: 算式中出现了未知的函数名。
 
 ## Part 2 - Analysis
 

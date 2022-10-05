@@ -4,7 +4,8 @@ enum errors_in_bc {
     invalid_variable_name,
     runtime_error,
     unknown_command,
-    unknown_variable
+    unknown_variable,
+    unknown_function
 };
 struct error_in_bc {
     errors_in_bc error_type;
