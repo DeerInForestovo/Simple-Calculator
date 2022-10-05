@@ -6,7 +6,8 @@ enum errors_in_bc {
     runtime_error,
     unknown_command,
     unknown_variable,
-    unknown_function
+    unknown_function,
+    recursion
 };
 
 struct error_in_bc {

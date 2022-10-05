@@ -2,6 +2,8 @@
 #include <cstring>
 #include <cmath>
 #include <iostream>
+#include <cstdio>
+#include <functional>
 
 error_in_bc Error_in_bc;
 
@@ -18,7 +20,7 @@ struct Trie { // 0 = Empty node, 1 = Root
         if('a' <= s && s <= 'z') return s - 'a' + 27;
         return -1;
     }
-    int Insert(char* begin, char* end, int setId = 0) {
+    int Insert(char* begin, char* end, int setId = -999) {
         int Nod = 1;
         for(char* s = begin; (end ? s != end : *s); ++s) {
             int c = toInt(*s);
@@ -26,7 +28,7 @@ struct Trie { // 0 = Empty node, 1 = Root
             if(To[Nod][c] == 0) To[Nod][c] = ++Cnt;
             Nod = To[Nod][c];
         }
-        if(setId) {
+        if(setId != -999) {
             Ids[Nod] = setId;
             return 0;
         }
@@ -37,17 +39,12 @@ struct Trie { // 0 = Empty node, 1 = Root
         int Nod = 1;
         for(char* s = begin; (end ? s != end : *s); ++s)
             Nod = To[Nod][toInt(*s)];
-        return Nod; // 0 if a function/variable do not exist
+        return Ids[Nod]; // 0 if a function/variable do not exist
     }
 } variableTrie, funcionTrie;
 
-namespace presetFunctions {
-    const int SQRT = -1;
-    const int LOG = -2;
-    const int EXP = -3;
-    const int SIN = -4;
-    const int COS = -5;
-}
+int presetFunctionId;
+std::function<double(double)> presetFunctions[100];
 
 struct SelfDefinedFunction {
     char equation[1000];
@@ -58,17 +55,16 @@ struct SelfDefinedFunction {
     }
 } selfDefinedFunction[1000];
 double selfDefinedVariable[1000];
+bool inlineFuncion[1000]; // If an inline function is visited, a recursion occurs.
 
 int operationPriority[300];
+int VITRUE_ID = 999;
 
 double Solve(char* begin, char* end) {
-
-    static const int BRACKET_PRIORITY = 100;
-
     if(begin == end) return 0; // Automatically turn -x into 0 - x
     
     int minPriority = 1 << 30, leftBracket = 0;
-    
+    static const int BRACKET_PRIORITY = 100;
     for(char* s = begin; s != end; ++s) {
         if(*s == '(') {
             ++leftBracket;
@@ -86,7 +82,8 @@ double Solve(char* begin, char* end) {
             minPriority = std::min(minPriority, leftBracket * BRACKET_PRIORITY + operationPriority[*s]);
     }
     if(leftBracket) {
-        for(s = begin; *s != '('; ++s); // Point to the first '('
+        char *s;
+        for(s = end; *(--s) != '(';); // Point to the last '('
         Error_in_bc = error_in_bc(syntax_error, s);
         return 1;
     }
@@ -96,7 +93,7 @@ double Solve(char* begin, char* end) {
         // Single number
         // Tip: If we do not use sscanf here, the number will be low arruracy with too many *10 operation.
         double ans;
-        if(sscanf(begin, "%lf", &ans)) {
+        if(sscanf(begin, "%lf", &ans)) { // This number should be like 123 or 123.45, no 'e' or anything else.
             int decimalPoint = 0;
             for(char* s = begin; s != end; ++s) {
                 if('0' <= *s && *s <= '9') continue;
@@ -120,46 +117,44 @@ double Solve(char* begin, char* end) {
                 break;
             }
         if(leftBracketPos) {
+
             int functionId = funcionTrie.Query(begin, leftBracketPos);
             if(functionId == 0) {
-                Error_in_bc = error_in_bc(unknown_variable, begin);
+                Error_in_bc = error_in_bc(unknown_function, begin);
                 return 1;
             }
-            ans = Solve(leftBracketPos + 1, end - 1); // end - 1 = rightBracketPos
-            switch(functionId) {
-                case presetFunctions::COS:
-                    return cos(ans);
-                    break;
-                case presetFunctions::SIN:
-                    return sin(ans);
-                    break;
-                case presetFunctions::EXP:
-                    return exp(ans);
-                    break;
-                case presetFunctions::LOG:
-                    return log(ans);
-                    break;
-                case presetFunctions::SQRT:
-                    return sqrt(ans);
-                    break;
-
-                default: // Self-defined function
-                    // Give the variable in the function a temporary value
-                    int variableId = variableTrie.Query(selfDefinedFunction[functionId].variable, 0), vid;
-                    if(variableId == 0) vid = variableTrie.Insert(selfDefinedFunction[functionId].variable, 0, variableTrie.Id + 1);
-                        else vid = variableId;
-                    double reg = selfDefinedVariable[vid];
-                    selfDefinedVariable[vid] = Solve(leftBracketPos + 1, end - 1);
-                    // ans = Solve(selfDefinedFunction[functionId].equation, selfDefinedFunction[functionId].equation + strlen(selfDefinedFunction[functionId].equation));
-                    char* equ = selfDefinedFunction[functionId].equation;
-                    ans = Solve(equ, equ + strlen(equ));
-                    if(Error_in_bc.error_type != no_error) Error_in_bc.pos = begin; // Modify the error position
-                    // Remove the temporary value
-                    variableTrie.Insert(selfDefinedFunction[functionId].variable, 0, variableId);
-                    selfDefinedVariable[vid] = reg;
-                    return ans;
-                    break;
+            if(inlineFuncion[functionId]) {
+                Error_in_bc = error_in_bc(recursion, begin);
+                return 1;
             }
+
+            // Calcluate the variable in the function
+            ans = Solve(leftBracketPos + 1, end - 1); // end - 1 = rightBracketPos
+            if(Error_in_bc.error_type != no_error) return 1;
+            
+            // Preset funcion
+            if(functionId < 0) return presetFunctions[-functionId](ans);
+            
+            // Self-defined function
+            // Give the variable in the function a temporary value
+            int variableId = variableTrie.Query(selfDefinedFunction[functionId].variable, 0);
+            --VITRUE_ID;
+            variableTrie.Insert(selfDefinedFunction[functionId].variable, 0, VITRUE_ID);
+            selfDefinedVariable[VITRUE_ID] = ans;
+
+            // Calculate with definition equation
+            // ans = Solve(selfDefinedFunction[functionId].equation, selfDefinedFunction[functionId].equation + strlen(selfDefinedFunction[functionId].equation));
+            char* equ = selfDefinedFunction[functionId].equation;
+            inlineFuncion[functionId] = true;
+            ans = Solve(equ, equ + strlen(equ));
+            if(Error_in_bc.error_type != no_error) Error_in_bc.pos = begin; // Modify the error position
+
+            // Remove the temporary value
+            ++VITRUE_ID;
+            variableTrie.Insert(selfDefinedFunction[functionId].variable, 0, variableId);
+            inlineFuncion[functionId] = false;
+
+            return ans;
         }
 
         // Single variable
@@ -174,16 +169,10 @@ double Solve(char* begin, char* end) {
         char* last = begin;
         char lastOperator;
         for(char* s = begin; s != end; ++s) {
-            if(*s == '(') {
-                ++leftBracket;
-                continue;
-            }
-            if(*s == ')') {
-                --leftBracket;
-                continue;
-            }
+            if(*s == '(') ++leftBracket;
+            if(*s == ')') --leftBracket;
             if(minPriority == leftBracket * BRACKET_PRIORITY + operationPriority[*s] || s == end - 1) {
-                now = Solve(last, s - (operationPriority[*s] != 0));
+                now = Solve(last, s + (operationPriority[*s] == 0));
                 if(Error_in_bc.error_type != no_error) return 1;
                 if(first) {
                     first = false;
@@ -201,23 +190,23 @@ double Solve(char* begin, char* end) {
                             break;
                         case '/':
                             if(fabs(now) <= 1e-14) {
-                                Error_in_bc = error_in_bc(runtime_error, s);
+                                Error_in_bc = error_in_bc(runtime_error, last - 1);
                                 return 1;
                             }
                             ans /= now;
                             break;
                         case '%':
-                            if(fabs(now) <= 1e-14) {
-                                Error_in_bc = error_in_bc(runtime_error, s);
+                            if((long long)now <= 0) {
+                                Error_in_bc = error_in_bc(runtime_error, last - 1);
                                 return 1;
                             }
-                            ans = (long long)Ans % (long long)Now;
+                            ans = (long long)ans % (long long)now;
                             break;
                         case '^':
                             ans = pow(ans, now);
                             break;
                         default:
-                            Error_in_bc = error_in_bc(syntax_error, s);
+                            Error_in_bc = error_in_bc(syntax_error, last - 1);
                             return 1;
                             break;
                     }
@@ -230,18 +219,38 @@ double Solve(char* begin, char* end) {
     }
 }
 
+inline void addFunction(char* name, std::function<double(double)> F) {
+    funcionTrie.Insert(name, 0, --presetFunctionId);
+    presetFunctions[-presetFunctionId] = F;
+}
+
+double sec(double x) { return 1 / cos(x); }
+double csc(double x) { return 1 / sin(x); }
+double cot(double x) { return 1 / tan(x); }
 void Init() {
-    operationPriority['+'] = 1;
-    operationPriority['-'] = 1;
-    operationPriority['*'] = 2;
-    operationPriority['/'] = 2;
-    operationPriority['%'] = 2;
+    operationPriority['+'] = operationPriority['-'] = 1;
+    operationPriority['*'] = operationPriority['/'] = operationPriority['%'] = 2;
     operationPriority['^'] = 3;
-    funcionTrie.Insert("sqrt", 0, presetFunctions::SQRT);
-    funcionTrie.Insert("cos", 0, presetFunctions::COS);
-    funcionTrie.Insert("sin", 0, presetFunctions::SIN);
-    funcionTrie.Insert("exp", 0, presetFunctions::EXP);
-    funcionTrie.Insert("log", 0, presetFunctions::LOG);
+    
+    // Add more funcion here easily
+    addFunction("sqrt", sqrt);
+    addFunction("log", log);
+    addFunction("exp", exp);
+    addFunction("sin", sin);
+    addFunction("cos", cos);
+    addFunction("fabs", fabs);
+    addFunction("abs", abs);
+    addFunction("tan", tan);
+    addFunction("acos", acos);
+    addFunction("asin", asin);
+    addFunction("atan", atan);
+    addFunction("sec", sec);
+    addFunction("csc", csc);
+    addFunction("cot", cot);
+    addFunction("ceil", ceil);
+    addFunction("floor", floor);
+    addFunction("round", round);
+
 }
 
 inline void errorCheck(char* S) {
@@ -272,6 +281,10 @@ inline void errorCheck(char* S) {
             printf("unknown function");
             position = true;
             break;
+        case recursion:
+            printf("recursion\n");
+            position = true;
+            break;
     }
     if(position) {
         printf("%s\n", S);
@@ -283,7 +296,6 @@ inline void errorCheck(char* S) {
 
 void Calculate(char* S) {
     Error_in_bc.error_type = no_error;
-    s = S;
     int length = strlen(S);
     int numberOfBlanks = 0;
     bool isDefinitionType = false;
@@ -307,7 +319,7 @@ void Calculate(char* S) {
                 else sscanf(S, "%[^(]%*1[(]%[^)]%*1[)]%*1[=]%s", name, selfDefinedFunction[fid].variable, selfDefinedFunction[fid].equation);
         } else {
             sscanf(S, "%[^=]", name);
-            char equationPos = S;
+            char* equationPos = S;
             while(*equationPos != '=') ++equationPos;
             double value = Solve(equationPos + 1, S + length);
             if(Error_in_bc.error_type == no_error) {
@@ -318,7 +330,7 @@ void Calculate(char* S) {
         }
     } else {
         double ans = Solve(S, S + length);
-        if(Error_in_bc.error_type == no_error) cout << ans << endl;
+        if(Error_in_bc.error_type == no_error) std::cout << ans << std::endl;
     }
     errorCheck(S);
 }

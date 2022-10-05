@@ -23,7 +23,7 @@ int main() {
     Init();
     while(true) {
         memset(S, 0, sizeof S);
-        cin.getline(S, 1000);
+        std::cin.getline(S, 1000);
         if(S[0] == '#') {
             if(S[1] == 'q') break;
             else if(S[1] == 'h') ShowHelp();
