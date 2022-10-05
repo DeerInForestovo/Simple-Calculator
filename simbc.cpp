@@ -41,10 +41,12 @@ struct Trie { // 0 = Empty node, 1 = Root
             Nod = To[Nod][toInt(*s)];
         return Ids[Nod]; // 0 if a function/variable do not exist
     }
-} variableTrie, funcionTrie;
+} variableTrie, funcionTrie; // Transform its name into its id
 
 int presetFunctionId;
 std::function<double(double)> presetFunctions[100];
+std::string presetFunctionName[100];
+std::string presetFunctionExplanations[100];
 
 struct SelfDefinedFunction {
     char equation[1000];
@@ -55,14 +57,15 @@ struct SelfDefinedFunction {
     }
 } selfDefinedFunction[1000];
 double selfDefinedVariable[1000];
-bool inlineFuncion[1000]; // If an inline function is visited, a recursion occurs.
+bool inlineFuncion[1000]; // If an inline function is visited, a recursion occurs
 
 int operationPriority[300];
-int VITRUE_ID = 999;
+int VITRUE_ID = 999; // For self-defined functions, give it a vitrue id when using
 
-double Solve(char* begin, char* end) {
+double solve(char* begin, char* end) {
     if(begin == end) return 0; // Automatically turn -x into 0 - x
     
+    // Find the operator with minimum priority
     int minPriority = 1 << 30, leftBracket = 0;
     static const int BRACKET_PRIORITY = 100;
     for(char* s = begin; s != end; ++s) {
@@ -93,7 +96,7 @@ double Solve(char* begin, char* end) {
         // Single number
         // Tip: If we do not use sscanf here, the number will be low arruracy with too many *10 operation.
         double ans;
-        if(sscanf(begin, "%lf", &ans)) { // This number should be like 123 or 123.45, no 'e' or anything else.
+        if(sscanf(begin, "%lf", &ans)) { // This number should be like 123 or 123.45, no 'e' or anything else
             int decimalPoint = 0;
             for(char* s = begin; s != end; ++s) {
                 if('0' <= *s && *s <= '9') continue;
@@ -107,7 +110,7 @@ double Solve(char* begin, char* end) {
         }
 
         // Only brackets
-        if(*begin == '(' && *(end - 1) == ')') return Solve(begin + 1, end - 1);
+        if(*begin == '(' && *(end - 1) == ')') return solve(begin + 1, end - 1);
 
         // Single function
         char* leftBracketPos = 0;
@@ -129,7 +132,7 @@ double Solve(char* begin, char* end) {
             }
 
             // Calcluate the variable in the function
-            ans = Solve(leftBracketPos + 1, end - 1); // end - 1 = rightBracketPos
+            ans = solve(leftBracketPos + 1, end - 1); // end - 1 = rightBracketPos
             if(Error_in_bc.error_type != no_error) return 1;
             
             // Preset funcion
@@ -143,10 +146,10 @@ double Solve(char* begin, char* end) {
             selfDefinedVariable[VITRUE_ID] = ans;
 
             // Calculate with definition equation
-            // ans = Solve(selfDefinedFunction[functionId].equation, selfDefinedFunction[functionId].equation + strlen(selfDefinedFunction[functionId].equation));
+            // ans = solve(selfDefinedFunction[functionId].equation, selfDefinedFunction[functionId].equation + strlen(selfDefinedFunction[functionId].equation));
             char* equ = selfDefinedFunction[functionId].equation;
             inlineFuncion[functionId] = true;
-            ans = Solve(equ, equ + strlen(equ));
+            ans = solve(equ, equ + strlen(equ));
             if(Error_in_bc.error_type != no_error) Error_in_bc.pos = begin; // Modify the error position
 
             // Remove the temporary value
@@ -171,8 +174,8 @@ double Solve(char* begin, char* end) {
         for(char* s = begin; s != end; ++s) {
             if(*s == '(') ++leftBracket;
             if(*s == ')') --leftBracket;
-            if(minPriority == leftBracket * BRACKET_PRIORITY + operationPriority[*s] || s == end - 1) {
-                now = Solve(last, s + (operationPriority[*s] == 0));
+            if(leftBracket * BRACKET_PRIORITY + operationPriority[*s] == minPriority || s == end - 1) {
+                now = solve(last, s + (operationPriority[*s] == 0));
                 if(Error_in_bc.error_type != no_error) return 1;
                 if(first) {
                     first = false;
@@ -188,6 +191,9 @@ double Solve(char* begin, char* end) {
                         case '*':
                             ans *= now;
                             break;
+                        case '^':
+                            ans = pow(ans, now);
+                            break;
                         case '/':
                             if(fabs(now) <= 1e-14) {
                                 Error_in_bc = error_in_bc(runtime_error, last - 1);
@@ -202,11 +208,8 @@ double Solve(char* begin, char* end) {
                             }
                             ans = (long long)ans % (long long)now;
                             break;
-                        case '^':
-                            ans = pow(ans, now);
-                            break;
                         default:
-                            Error_in_bc = error_in_bc(syntax_error, last - 1);
+                            Error_in_bc = error_in_bc(syntax_error, last - 1); // Point to the operator
                             return 1;
                             break;
                     }
@@ -219,52 +222,56 @@ double Solve(char* begin, char* end) {
     }
 }
 
-inline void addFunction(char* name, std::function<double(double)> F) {
-    funcionTrie.Insert(name, 0, --presetFunctionId);
-    presetFunctions[-presetFunctionId] = F;
+inline void addFunction(char* name, std::function<double(double)> F, std::string explanation = "") {
+    ++presetFunctionId;
+    presetFunctions[presetFunctionId] = F;
+    presetFunctionName[presetFunctionId] = std::string(name);
+    if(explanation.length()) presetFunctionExplanations[presetFunctionId] = explanation;
+    funcionTrie.Insert(name, 0, -presetFunctionId);
+    return;
 }
 
 double sec(double x) { return 1 / cos(x); }
 double csc(double x) { return 1 / sin(x); }
 double cot(double x) { return 1 / tan(x); }
-void Init() {
+void init() {
     operationPriority['+'] = operationPriority['-'] = 1;
     operationPriority['*'] = operationPriority['/'] = operationPriority['%'] = 2;
     operationPriority['^'] = 3;
     
-    // Add more funcion here easily
+    // You can add more funcion here easily
     addFunction("sqrt", sqrt);
-    addFunction("log", log);
-    addFunction("exp", exp);
+    addFunction("log", log, "natural logarithm, ln");
+    addFunction("exp", exp, "power of e, e^");
     addFunction("sin", sin);
     addFunction("cos", cos);
-    addFunction("fabs", fabs);
-    addFunction("abs", abs);
+    addFunction("fabs", fabs, "absolute value of a double");
+    addFunction("abs", abs, "absolute value of an integer");
     addFunction("tan", tan);
-    addFunction("acos", acos);
-    addFunction("asin", asin);
-    addFunction("atan", atan);
-    addFunction("sec", sec);
-    addFunction("csc", csc);
-    addFunction("cot", cot);
+    addFunction("acos", acos, "arccos");
+    addFunction("asin", asin, "arcsin");
+    addFunction("atan", atan, "arctan");
+    addFunction("sec", sec, "1/cos");
+    addFunction("csc", csc, "1/sin");
+    addFunction("cot", cot, "1/tan");
     addFunction("ceil", ceil);
     addFunction("floor", floor);
     addFunction("round", round);
-
+    return;
 }
 
 inline void errorCheck(char* S) {
     bool position = false;
     switch(Error_in_bc.error_type) {
-        case syntax_error:
-            printf("syntax error\n");
-            position = true;
-            break;
         case invalid_variable_name:
             printf("invalid variable name\n");
             break;
         case invalid_function_name:
             printf("invalid function name\n");
+            break;
+        case syntax_error:
+            printf("syntax error\n");
+            position = true;
             break;
         case runtime_error:
             printf("runtime error\n");
@@ -292,23 +299,19 @@ inline void errorCheck(char* S) {
             printf(" ");
         printf("^\n");
     }
+    return;
 }
 
-void Calculate(char* S) {
+void calculate(char* S) {
     Error_in_bc.error_type = no_error;
     int length = strlen(S);
-    int numberOfBlanks = 0;
     bool isDefinitionType = false;
     bool isFunctionDefinitionType = false;
     for(int i = 0; i < length; ++i) {
         if(S[i] == '(' && !isDefinitionType) isFunctionDefinitionType = true; // If there is a '(' before '='
         if(S[i] == '=') isDefinitionType = true;
-        if(S[i] == ' ') ++numberOfBlanks;
-            else S[i - numberOfBlanks] = S[i];
     }
-    for(int i = length - numberOfBlanks; i < length; ++i)
-        S[i] = '\0';
-    // Solve the equation
+    // solve the equation
     if(isDefinitionType) {
         char name[100];
         memset(name, 0, sizeof name);
@@ -317,20 +320,40 @@ void Calculate(char* S) {
             int fid = funcionTrie.Insert(name, 0);
             if(fid == -1) Error_in_bc.error_type = invalid_function_name;
                 else sscanf(S, "%[^(]%*1[(]%[^)]%*1[)]%*1[=]%s", name, selfDefinedFunction[fid].variable, selfDefinedFunction[fid].equation);
-        } else {
+            
+            /*
+                The regular expression above means:
+                    Firstly, input a string to name until we meet a '('.
+                    Secondly, input a character '(' but do not store it.
+                    Thirdly, input a string to variable until we meet a ')'.
+                    Then, input a character ')' and a character '=' but do not store them.
+                    Finally, input a string to equation untio the string ends (i.e. meet a '\0').
+            */
+
+        } else { // is variable definition type
             sscanf(S, "%[^=]", name);
             char* equationPos = S;
             while(*equationPos != '=') ++equationPos;
-            double value = Solve(equationPos + 1, S + length);
+            double value = solve(equationPos + 1, S + length);
             if(Error_in_bc.error_type == no_error) {
                 int vid = variableTrie.Insert(name, 0);
                 if(vid == -1) Error_in_bc.error_type = invalid_variable_name;
                     else selfDefinedVariable[vid] = value;
             }
         }
-    } else {
-        double ans = Solve(S, S + length);
-        if(Error_in_bc.error_type == no_error) std::cout << ans << std::endl;
+    } else { // is calculation type
+        double ans = solve(S, S + length);
+        if(Error_in_bc.error_type == no_error) std::cout << ans << '\n';
     }
     errorCheck(S);
+    return;
+}
+
+void showFunctions() {
+    for(int i = 1; i <= presetFunctionId; ++i) {
+        std::cout << i << ". " << presetFunctionName[i] << ": ";
+        if(!presetFunctionExplanations[i].length()) std::cout << "[No explanation.]\n";
+            else std::cout << presetFunctionExplanations[i] << '\n';
+    }
+    return;
 }

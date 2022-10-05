@@ -1,3 +1,6 @@
+#include <functional>
+#include <cstring>
+
 enum errors_in_bc {
     no_error,
     syntax_error,
@@ -19,10 +22,14 @@ struct error_in_bc {
     }
 };
 
-void Init();
+double solve(char* begin, char* end);
 
-double Solve(char* begin, char* end);
+void calculate(char* S);
 
-void Calculate(char* S);
+inline void addFunction(char* name, std::function<double(double)> F, std::string explanation);
+
+void init();
 
 void errorCheck();
+
+void showFunctions();

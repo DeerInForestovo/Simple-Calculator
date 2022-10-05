@@ -6,27 +6,30 @@
 
 char S[1000];
 
-inline void ShowHelp() {
+inline void showHelp() {
     printf("1. Use #h for help, #q for quit(or you can quit the terminal yourself).\n");
     printf("2. Input a equation like 1*2+3^4 to calculate the result.\n");
     printf("3. Input a equation like x=1*2+3^4 to set a variable.\n");
     printf("4. Input a equation like f(x)=x^2+2*x+1 to set a function.\n");
-    printf("5. You can also use: log(x), exp(x), sin(x), cos(x), sqrt(x).\n");
+    printf("5. You can also use: log(x), exp(x), sqrt(x)... #a for all preset mathematical functions.\n");
     return;
 }
 
-void Init();
+inline void showFunctions();
 
-void Calculate(char* S);
+void init();
+
+void calculate(char* S);
 
 int main() {
-    Init();
+    init();
     while(true) {
         memset(S, 0, sizeof S);
         std::cin.getline(S, 1000);
         if(S[0] == '#') {
             if(S[1] == 'q') break;
-            else if(S[1] == 'h') ShowHelp();
+            else if(S[1] == 'h') showHelp();
+            else if(S[1] == 'a') showFunctions();
             else printf("unknown command\n");
             continue;
         }
@@ -43,7 +46,7 @@ int main() {
         }
         for(int i = length - numberOfBlanks; i < length; ++i)
             S[i] = '\0';
-        Calculate(S);
+        calculate(S);
     }
     printf("Thank you for using!\n");
     return 0;
