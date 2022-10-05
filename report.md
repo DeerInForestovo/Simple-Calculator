@@ -25,11 +25,12 @@ SID: 12111012
 #### 可能的报错：
 
 1. syntax error: 输入不能构成一个表达式。
-2. invalid variable name: 错误的变量（或函数）名，可能是不合法或重复。
-3. runtime error: 运算中发生错误，可能是对 $0$ 进行除法或取模等。
-4. unknown command: 未知指令，如果第一个字符为 # 而之后输入的内容不是现有的指令。
-5. unknown variable: 算式中出现了未知的变量名。
-6. unknown function: 算式中出现了未知的函数名。
+2. invalid variable name: 错误的变量名，可能是不合法或重复。
+3. invalid function name: 错误的函数名，可能是不合法或重复（包括和预设函数重复）。
+4. runtime error: 运算中发生错误，可能是对 $0$ 进行除法或取模等。
+5. unknown command: 未知指令，如果第一个字符为 # 而之后输入的内容不是现有的指令。
+6. unknown variable: 算式中出现了未知的变量名。
+7. unknown function: 算式中出现了未知的函数名。
 
 ## Part 2 - Analysis
 
