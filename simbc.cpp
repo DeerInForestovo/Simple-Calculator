@@ -37,8 +37,12 @@ struct Trie { // 0 = Empty node, 1 = Root
     }
     int Query(char* begin, char* end) {
         int Nod = 1;
-        for(char* s = begin; (end ? s != end : *s); ++s)
-            Nod = To[Nod][toInt(*s)];
+        for(char* s = begin; (end ? s != end : *s); ++s) {
+            int c = toInt(*s);
+            if(c == -1) return 0;
+            if(To[Nod][c] == 0) return 0;
+            Nod = To[Nod][c];
+        }
         return Ids[Nod]; // 0 if a function/variable do not exist
     }
 } variableTrie, funcionTrie; // Transform its name into its id
@@ -59,7 +63,7 @@ struct SelfDefinedFunction {
 double selfDefinedVariable[1000];
 bool inlineFuncion[1000]; // If an inline function is visited, a recursion occurs
 
-int operationPriority[300];
+int operatorPriority[300];
 int VITRUE_ID = 999; // For self-defined functions, give it a vitrue id when using
 
 double solve(char* begin, char* end) {
@@ -81,8 +85,8 @@ double solve(char* begin, char* end) {
             --leftBracket;
             continue;
         }
-        if(operationPriority[*s])
-            minPriority = std::min(minPriority, leftBracket * BRACKET_PRIORITY + operationPriority[*s]);
+        if(operatorPriority[*s])
+            minPriority = std::min(minPriority, leftBracket * BRACKET_PRIORITY + operatorPriority[*s]);
     }
     if(leftBracket) {
         char *s;
@@ -174,8 +178,8 @@ double solve(char* begin, char* end) {
         for(char* s = begin; s != end; ++s) {
             if(*s == '(') ++leftBracket;
             if(*s == ')') --leftBracket;
-            if(leftBracket * BRACKET_PRIORITY + operationPriority[*s] == minPriority || s == end - 1) {
-                now = solve(last, s + (operationPriority[*s] == 0));
+            if(leftBracket * BRACKET_PRIORITY + operatorPriority[*s] == minPriority || s == end - 1) {
+                now = solve(last, s + (operatorPriority[*s] == 0));
                 if(Error_in_bc.error_type != no_error) return 1;
                 if(first) {
                     first = false;
@@ -235,9 +239,9 @@ double sec(double x) { return 1 / cos(x); }
 double csc(double x) { return 1 / sin(x); }
 double cot(double x) { return 1 / tan(x); }
 void init() {
-    operationPriority['+'] = operationPriority['-'] = 1;
-    operationPriority['*'] = operationPriority['/'] = operationPriority['%'] = 2;
-    operationPriority['^'] = 3;
+    operatorPriority['+'] = operatorPriority['-'] = 1;
+    operatorPriority['*'] = operatorPriority['/'] = operatorPriority['%'] = 2;
+    operatorPriority['^'] = 3;
     
     // You can add more funcion here easily
     addFunction("sqrt", sqrt);
@@ -285,7 +289,7 @@ inline void errorCheck(char* S) {
             position = true;
             break;
         case unknown_function:
-            printf("unknown function");
+            printf("unknown function\n");
             position = true;
             break;
         case recursion:
