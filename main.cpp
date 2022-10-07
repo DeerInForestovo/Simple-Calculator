@@ -14,6 +14,7 @@ inline void showHelp() {
     printf("3. Input a equation like x=1*2+3^4 to set a variable.\n");
     printf("4. Input a equation like f(x)=x^2+2*x+1 to set a function.\n");
     printf("5. You can also use: log(x), exp(x), sqrt(x)... #a for all preset mathematical functions.\n");
+    printf("6. Use #r to read a file.\n");
     std::cout << "\033[0m";
     return;
 }

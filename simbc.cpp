@@ -321,33 +321,49 @@ void calculate(char* S) {
     }
     // solve the equation
     if(isDefinitionType) {
-        char name[100];
-        memset(name, 0, sizeof name);
+        char functionName[100], variableName[100];
+        memset(functionName, 0, sizeof functionName);
         if(isFunctionDefinitionType) {
-            sscanf(S, "%[^(]", name);
-            int fid = funcionTrie.Insert(name, 0);
-            if(fid == -1) Error_in_bc.error_type = invalid_function_name;
-                else sscanf(S, "%[^(]%*1[(]%[^)]%*1[)]%*1[=]%s", name, selfDefinedFunction[fid].variable, selfDefinedFunction[fid].equation);
-            
+            sscanf(S, "%[^(]%*1[(]%[^)]", functionName, variableName);
+            bool invalidVariableName = false;
+            char* v = variableName;
+            while(*v) {
+                if(Trie::toInt(*v) == -1) {
+                    invalidVariableName = true;
+                    break;
+                }
+                ++v;
+            }
+
+            if(!strlen(functionName)) Error_in_bc.error_type = invalid_function_name;
+            else if(!strlen(variableName) || invalidVariableName) Error_in_bc.error_type = invalid_variable_name;
+            else {
+                int fid = funcionTrie.Insert(functionName, 0);
+                if(fid == -1) Error_in_bc.error_type = invalid_function_name;
+                    else sscanf(S, "%[^(]%*1[(]%[^)]%*1[)]%*1[=]%s", functionName, selfDefinedFunction[fid].variable, selfDefinedFunction[fid].equation);
+            }
             /*
                 The regular expression above means:
-                    Firstly, input a string to name until we meet a '('.
+                    Firstly, input a string to functionName until we meet a '('.
                     Secondly, input a character '(' but do not store it.
-                    Thirdly, input a string to variable until we meet a ')'.
+                    Thirdly, input a string to variableName until we meet a ')'.
                     Then, input a character ')' and a character '=' but do not store them.
                     Finally, input a string to equation untio the string ends (i.e. meet a '\0').
             */
 
         } else { // is variable definition type
-            sscanf(S, "%[^=]", name);
-            char* equationPos = S;
-            while(*equationPos != '=') ++equationPos;
-            double value = solve(equationPos + 1, S + length);
-            if(Error_in_bc.error_type == no_error) {
-                int vid = variableTrie.Insert(name, 0);
-                if(vid == -1) Error_in_bc.error_type = invalid_variable_name;
-                    else selfDefinedVariable[vid] = value;
-            }
+            sscanf(S, "%[^=]", variableName);
+            if(!strlen(variableName)) Error_in_bc.error_type = invalid_variable_name;
+                else {
+                    char* equationPos = S;
+                    while(*equationPos != '=') ++equationPos;
+                    double value = solve(equationPos + 1, S + length);
+                    if(Error_in_bc.error_type == no_error) {
+                        int vid = variableTrie.Insert(variableName, 0);
+                        if(vid == -1) Error_in_bc.error_type = invalid_variable_name;
+                            else selfDefinedVariable[vid] = value;
+                    }
+                }
         }
     } else { // is calculation type
         double ans = solve(S, S + length);
