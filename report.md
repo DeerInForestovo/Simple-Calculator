@@ -113,13 +113,8 @@ void init() {
 
 #### Section 5 - 补充功能
 
-1. 颜色
-
-通过 ```std::cout << "\033[31m";``` 等实现。
-
-2. 文件
-
-通过  ```std::ifstream``` 类实现。
+1. 颜色通过 ```std::cout << "\033[31m";``` 等实现。
+2. 文件通过  ```std::ifstream``` 类实现。
 
 ## Part 3 - Result & Verification
 
