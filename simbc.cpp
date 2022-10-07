@@ -130,7 +130,7 @@ double solve(char* begin, char* end) {
                 Error_in_bc = error_in_bc(unknown_function, begin);
                 return 1;
             }
-            if(inlineFuncion[functionId]) {
+            if(functionId > 0 && inlineFuncion[functionId]) {
                 Error_in_bc = error_in_bc(recursion, begin);
                 return 1;
             }
