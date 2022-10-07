@@ -266,43 +266,47 @@ void init() {
 
 inline void errorCheck(char* S) {
     bool position = false;
+    std::cout << "\033[31m";
     switch(Error_in_bc.error_type) {
         case invalid_variable_name:
-            printf("invalid variable name\n");
+            printf("Error: invalid variable name\n");
             break;
         case invalid_function_name:
-            printf("invalid function name\n");
+            printf("Error: invalid function name\n");
             break;
         case syntax_error:
-            printf("syntax error\n");
+            printf("Error: syntax error\n");
             position = true;
             break;
         case runtime_error:
-            printf("runtime error\n");
+            printf("Error: runtime error\n");
             position = true;
             break;
         case unknown_command:
-            printf("unknown command\n");
+            printf("Error: unknown command\n");
             break;
         case unknown_variable:
-            printf("unknown variable\n");
+            printf("Error: unknown variable\n");
             position = true;
             break;
         case unknown_function:
-            printf("unknown function\n");
+            printf("Error: unknown function\n");
             position = true;
             break;
         case recursion:
-            printf("recursion\n");
+            printf("Error: recursion\n");
             position = true;
             break;
     }
     if(position) {
+        std::cout << "\033[34m";
         printf("%s\n", S);
         for(int i = 0; i < Error_in_bc.pos - S; ++i)
             printf(" ");
+        std::cout << "\033[31m";
         printf("^\n");
     }
+    std::cout << "\033[0m";
     return;
 }
 
@@ -347,17 +351,23 @@ void calculate(char* S) {
         }
     } else { // is calculation type
         double ans = solve(S, S + length);
-        if(Error_in_bc.error_type == no_error) std::cout << ans << '\n';
+        if(Error_in_bc.error_type == no_error) {
+            std::cout << "\033[32m";
+            std::cout << ans << '\n';
+            std::cout << "\033[0m";
+        }
     }
     errorCheck(S);
     return;
 }
 
 void showFunctions() {
+    std::cout << "\033[33m";
     for(int i = 1; i <= presetFunctionId; ++i) {
         std::cout << i << ". " << presetFunctionName[i] << ": ";
         if(!presetFunctionExplanations[i].length()) std::cout << "[No explanation.]\n";
             else std::cout << presetFunctionExplanations[i] << '\n';
     }
+    std::cout << "\033[0m";
     return;
 }
