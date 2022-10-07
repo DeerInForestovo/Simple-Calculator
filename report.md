@@ -125,7 +125,7 @@ void init() {
 
 这里用读入 example.txt 的方式来完成测试。
 
-
+![image2](report_image2.png)
 
 ## Part 4 - Difficulties & Solutions
 
